@@ -1,10 +1,16 @@
 #!/usr/bin/python -tt
-import sys
+
+import argparse
 from datetime import datetime
+import os
+import sys
 import time
 import shlex, subprocess
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
+
+class Option(object):
+    pass
 
 class ExitInterrupt(Exception):
     pass
@@ -12,35 +18,49 @@ class ExitInterrupt(Exception):
 class EventHandler(FileSystemEventHandler):
     def run_make(self):
         if (self._child != None):
-            print "Terminate Existing Process."
+            print 'Terminate Existing Process.'
             self._child.terminate()
 
-        print "Starting Make Process"
+        print 'Starting Make Process'
         self._child = subprocess.Popen(self._args)
 
     def __init__(self):
-        self._cmd = 'make test.byte'
+        self._cmd = 'make ' + target[0]
         self._args = shlex.split(self._cmd)
+        os.chdir(path)
+        print 'Running', self._args, 'in', os.getcwd()
         self._child = None
         self._previous = datetime.now()
-        print "Init at", self._previous
+        print 'Init at', self._previous, 'with delay', delay
         self.run_make()
 
     def on_modified(self, event):
         #print "On Modified"
 
-        if (datetime.now() - self._previous).seconds > 5:
+        if (datetime.now() - self._previous).seconds > delay:
             self._previous = datetime.now()
 
             self.run_make()
         else:
-            print "."
+            print '.'
 
-if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        path = "."
-    else:
-        path = sys.argv[1]
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        description='This script would automatically re-run the Makefile after \
+                     a change is detected in the folder being monitored.')
+    parser.add_argument('-d', '--delay', nargs=1, type=int, default=10,
+                        help='the delay between sequential builds (default: 10)')
+    parser.add_argument('-l', '--location', nargs=1, default='.',
+                        help='the location being monitored')
+    parser.add_argument('-t', '--target', nargs=1, type=str, default='',
+                        help='the Makefile target to run')
+
+    opt = Option()
+    args = parser.parse_args(namespace=opt)
+
+    path = opt.location[0]
+    delay = opt.delay
+    target = opt.target
 
     event_handler = EventHandler()
     observer = Observer()
@@ -50,7 +70,7 @@ if __name__ == "__main__":
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        print "Keyboard Interrupt Captured"
+        print 'Keyboard Interrupt Captured'
         observer.unschedule_all()
         observer.stop()
     observer.join()
