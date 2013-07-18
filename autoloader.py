@@ -25,10 +25,13 @@ class EventHandler(FileSystemEventHandler):
         self._child = subprocess.Popen(self._args)
 
     def __init__(self):
-        self._cmd = 'make ' + target[0]
-        self._args = shlex.split(self._cmd)
+        self._args = ['make']
+        if target is not None:
+            self._args.extend(target)
+
         os.chdir(path)
         print 'Running', self._args, 'in', os.getcwd()
+
         self._child = None
         self._previous = datetime.now()
         print 'Init at', self._previous, 'with delay', delay
@@ -59,7 +62,15 @@ if __name__ == '__main__':
     args = parser.parse_args(namespace=opt)
 
     path = opt.location[0]
-    delay = opt.delay
+
+    if type(opt.delay) is list:
+        delay = opt.delay[0]
+    else:
+        delay = opt.delay
+
+    if (delay < 0):
+        delay = 10
+
     target = opt.target
 
     event_handler = EventHandler()
