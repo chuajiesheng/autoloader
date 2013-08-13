@@ -40,12 +40,14 @@ class EventHandler(FileSystemEventHandler):
     def on_modified(self, event):
         #print "On Modified"
 
-        if (datetime.now() - self._previous).seconds > delay:
+        left = delay - (datetime.now() - self._previous).seconds
+
+        if (left < 0):
             self._previous = datetime.now()
 
             self.run_make()
         else:
-            print '.'
+            print '...', left
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
